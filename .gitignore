@@ -33,3 +33,9 @@ Thumbs.db
 dbt_project/target/
 dbt_project/dbt_packages/
 dbt_project/logs/
+
+# ML reports
+ml/reports/*.json
+
+# Project planning (private)
+olist-data-platform-roadmap-v2.md
