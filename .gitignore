@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+*.egg
+
+# Data
+data/raw/*.csv
+data/ml/*.parquet
+*.duckdb
+*.duckdb.wal
+
+# ML artifacts (large files)
+ml/models/*.joblib
+ml/models/*.pkl
+ml/predictions/*.parquet
+ml/data_snapshots/*.parquet
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# dbt
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
