@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: olist
+    description: "Raw Olist Brazilian E-Commerce dataset (Kaggle)"
+    schema: main
+    tables:
+      - name: olist_orders_dataset
+        description: "Order-level data with timestamps and status"
+
+      - name: olist_order_items_dataset
+        description: "Item-level data with product, seller, price, and freight"
+
+      - name: olist_order_payments_dataset
+        description: "Payment-level data with type, installments, and value"
+
+      - name: olist_order_reviews_dataset
+        description: "Review-level data with score and comments"
+
+      - name: olist_customers_dataset
+        description: "Customer-level data with location"
+
+      - name: olist_sellers_dataset
+        description: "Seller-level data with location"
+
+      - name: olist_products_dataset
+        description: "Product-level data with category and dimensions"
+
+      - name: olist_geolocation_dataset
+        description: "Geolocation data with zip code prefix, lat/lng, city, state"

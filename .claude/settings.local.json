@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for dir:*)",
+      "Bash(do touch:*)",
+      "Bash(done)"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+olist_platform:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/olist.duckdb"
+      threads: 4
+      extensions:
+        - parquet
