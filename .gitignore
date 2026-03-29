@@ -39,3 +39,5 @@ ml/reports/*.json
 
 # Project planning (private)
 olist-data-platform-roadmap-v2.md
+
+.claude/*
