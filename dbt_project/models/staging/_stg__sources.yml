@@ -4,27 +4,45 @@ sources:
   - name: olist
     description: "Raw Olist Brazilian E-Commerce dataset (Kaggle)"
     schema: main
+    meta:
+      external_location: "{{ env_var('DBT_EXTERNAL_ROOT', '../data/raw') }}/{name}.csv"
     tables:
       - name: olist_orders_dataset
         description: "Order-level data with timestamps and status"
+        meta:
+          external_location: "../data/raw/olist_orders_dataset.csv"
 
       - name: olist_order_items_dataset
         description: "Item-level data with product, seller, price, and freight"
+        meta:
+          external_location: "../data/raw/olist_order_items_dataset.csv"
 
       - name: olist_order_payments_dataset
         description: "Payment-level data with type, installments, and value"
+        meta:
+          external_location: "../data/raw/olist_order_payments_dataset.csv"
 
       - name: olist_order_reviews_dataset
         description: "Review-level data with score and comments"
+        meta:
+          external_location: "../data/raw/olist_order_reviews_dataset.csv"
 
       - name: olist_customers_dataset
         description: "Customer-level data with location"
+        meta:
+          external_location: "../data/raw/olist_customers_dataset.csv"
 
       - name: olist_sellers_dataset
         description: "Seller-level data with location"
+        meta:
+          external_location: "../data/raw/olist_sellers_dataset.csv"
 
       - name: olist_products_dataset
         description: "Product-level data with category and dimensions"
+        meta:
+          external_location: "../data/raw/olist_products_dataset.csv"
 
       - name: olist_geolocation_dataset
         description: "Geolocation data with zip code prefix, lat/lng, city, state"
+        meta:
+          external_location: "../data/raw/olist_geolocation_dataset.csv"

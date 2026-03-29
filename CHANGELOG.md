@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 1 — Staging (Reliable Data)
+
+- Create 8 staging models: `stg_orders`, `stg_order_items`, `stg_order_payments`, `stg_order_reviews`, `stg_customers`, `stg_sellers`, `stg_products`, `stg_geolocation`
+- Rename columns to snake_case, cast timestamps and numerics, standardize text fields
+- Deduplicate geolocation by zip code prefix (averaged coordinates, mode city/state)
+- Handle null `product_category_name` with `'uncategorized'` default
+- Add `_stg__models.yml` with column descriptions and schema tests for all 8 models
+- Add PK tests (`unique`, `not_null`) on all primary keys
+- Add `accepted_values` tests on `order_status`, `payment_type`, `review_score`
+- Add `relationships` test: `stg_order_items.order_id` references `stg_orders.order_id`
+- Add composite uniqueness tests via `dbt_utils.unique_combination_of_columns`
+- Add singular test `assert_no_future_orders.sql`
+
 ### Phase 0 — Setup & Alignment
 
 - Initialize repository with README, LICENSE, .gitignore

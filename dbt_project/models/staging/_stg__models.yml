@@ -1,0 +1,306 @@
+version: 2
+
+models:
+
+  # ──────────────────────────────────────────────
+  # stg_orders
+  # ──────────────────────────────────────────────
+  - name: stg_orders
+    description: "Cleaned order-level data with properly typed timestamps."
+    columns:
+      - name: order_id
+        description: "Unique order identifier (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Foreign key to stg_customers."
+        data_tests:
+          - not_null
+
+      - name: order_status
+        description: "Current order status."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - delivered
+                - shipped
+                - invoiced
+                - processing
+                - canceled
+                - unavailable
+                - created
+                - approved
+
+      - name: order_purchased_at
+        description: "Timestamp when the order was placed by the customer."
+        data_tests:
+          - not_null
+
+      - name: order_approved_at
+        description: "Timestamp when the payment was approved."
+
+      - name: order_delivered_carrier_at
+        description: "Timestamp when the order was handed to the carrier."
+
+      - name: order_delivered_customer_at
+        description: "Timestamp when the customer received the order."
+
+      - name: order_estimated_delivery_at
+        description: "Estimated delivery date shown to the customer at purchase."
+
+  # ──────────────────────────────────────────────
+  # stg_order_items
+  # ──────────────────────────────────────────────
+  - name: stg_order_items
+    description: "Item-level order data with product, seller, price, and freight."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - item_sequence
+    columns:
+      - name: order_id
+        description: "Foreign key to stg_orders."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+
+      - name: item_sequence
+        description: "Sequential number of the item within the order."
+        data_tests:
+          - not_null
+
+      - name: product_id
+        description: "Foreign key to stg_products."
+        data_tests:
+          - not_null
+
+      - name: seller_id
+        description: "Foreign key to stg_sellers."
+        data_tests:
+          - not_null
+
+      - name: shipping_limit_at
+        description: "Seller shipping limit date."
+
+      - name: price
+        description: "Item price in BRL."
+        data_tests:
+          - not_null
+
+      - name: freight_value
+        description: "Item freight value in BRL."
+        data_tests:
+          - not_null
+
+  # ──────────────────────────────────────────────
+  # stg_order_payments
+  # ──────────────────────────────────────────────
+  - name: stg_order_payments
+    description: "Payment-level data with type, installments, and value."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - payment_sequence
+    columns:
+      - name: order_id
+        description: "Foreign key to stg_orders."
+        data_tests:
+          - not_null
+
+      - name: payment_sequence
+        description: "Sequential number of the payment within the order."
+        data_tests:
+          - not_null
+
+      - name: payment_type
+        description: "Payment method (credit_card, boleto, voucher, debit_card, not_defined)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - credit_card
+                - boleto
+                - voucher
+                - debit_card
+                - not_defined
+
+      - name: payment_installments
+        description: "Number of payment installments chosen by the customer."
+        data_tests:
+          - not_null
+
+      - name: payment_value
+        description: "Transaction value for this payment in BRL."
+        data_tests:
+          - not_null
+
+  # ──────────────────────────────────────────────
+  # stg_order_reviews
+  # ──────────────────────────────────────────────
+  - name: stg_order_reviews
+    description: "Review-level data with score and comments."
+    columns:
+      - name: review_id
+        description: "Unique review identifier."
+        data_tests:
+          - not_null
+
+      - name: order_id
+        description: "Foreign key to stg_orders."
+        data_tests:
+          - not_null
+
+      - name: review_score
+        description: "Customer satisfaction score (1 to 5)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+      - name: review_comment_title
+        description: "Optional title of the review."
+
+      - name: review_comment_message
+        description: "Optional body text of the review."
+
+      - name: review_created_at
+        description: "Timestamp when the review survey was sent."
+
+      - name: review_answered_at
+        description: "Timestamp when the customer answered the survey."
+
+  # ──────────────────────────────────────────────
+  # stg_customers
+  # ──────────────────────────────────────────────
+  - name: stg_customers
+    description: "Customer-level data with location. One row per customer_id (can repeat customer_unique_id)."
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier per order (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_unique_id
+        description: "Unique identifier across orders (deduplication key)."
+        data_tests:
+          - not_null
+
+      - name: customer_zip_code_prefix
+        description: "First 5 digits of the customer zip code."
+        data_tests:
+          - not_null
+
+      - name: customer_city
+        description: "Customer city (lowercased, trimmed)."
+        data_tests:
+          - not_null
+
+      - name: customer_state
+        description: "Customer state (2-letter uppercase code)."
+        data_tests:
+          - not_null
+
+  # ──────────────────────────────────────────────
+  # stg_sellers
+  # ──────────────────────────────────────────────
+  - name: stg_sellers
+    description: "Seller-level data with location."
+    columns:
+      - name: seller_id
+        description: "Unique seller identifier (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: seller_zip_code_prefix
+        description: "First 5 digits of the seller zip code."
+        data_tests:
+          - not_null
+
+      - name: seller_city
+        description: "Seller city (lowercased, trimmed)."
+        data_tests:
+          - not_null
+
+      - name: seller_state
+        description: "Seller state (2-letter uppercase code)."
+        data_tests:
+          - not_null
+
+  # ──────────────────────────────────────────────
+  # stg_products
+  # ──────────────────────────────────────────────
+  - name: stg_products
+    description: "Product-level data with category and physical dimensions."
+    columns:
+      - name: product_id
+        description: "Unique product identifier (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_category_name
+        description: "Product category (lowercased). Nulls replaced with 'uncategorized'."
+        data_tests:
+          - not_null
+
+      - name: product_name_length
+        description: "Number of characters in the product name."
+
+      - name: product_description_length
+        description: "Number of characters in the product description."
+
+      - name: product_photos_qty
+        description: "Number of product photos."
+
+      - name: weight_g
+        description: "Product weight in grams."
+
+      - name: length_cm
+        description: "Product length in centimeters."
+
+      - name: height_cm
+        description: "Product height in centimeters."
+
+      - name: width_cm
+        description: "Product width in centimeters."
+
+  # ──────────────────────────────────────────────
+  # stg_geolocation
+  # ──────────────────────────────────────────────
+  - name: stg_geolocation
+    description: "Geolocation data deduplicated by zip code prefix with averaged coordinates."
+    columns:
+      - name: zip_code_prefix
+        description: "5-digit zip code prefix (PK after deduplication)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: latitude
+        description: "Average latitude for this zip code prefix."
+        data_tests:
+          - not_null
+
+      - name: longitude
+        description: "Average longitude for this zip code prefix."
+        data_tests:
+          - not_null
+
+      - name: city
+        description: "Most frequent city name for this zip code prefix (lowercased, trimmed)."
+        data_tests:
+          - not_null
+
+      - name: state
+        description: "Most frequent state code for this zip code prefix (2-letter uppercase)."
+        data_tests:
+          - not_null
