@@ -7,3 +7,4 @@ olist_platform:
       threads: 4
       extensions:
         - parquet
+      external_root: "../data/raw"

@@ -1,4 +1,4 @@
-.PHONY: install dbt-deps dbt-build dbt-test ml-train ml-predict pipeline clean
+.PHONY: install load-data dbt-deps dbt-build dbt-test ml-train ml-predict pipeline clean
 
 # ---------- Environment ----------
 
@@ -6,6 +6,11 @@ install:
 	python -m pip install --upgrade pip
 	pip install -e ".[dev]"
 	$(MAKE) dbt-deps
+
+# ---------- Data ----------
+
+load-data:
+	python scripts/load_raw_data.py
 
 # ---------- dbt ----------
 
@@ -29,6 +34,8 @@ ml-predict:
 # ---------- Full Pipeline ----------
 
 pipeline:
+	@echo "=== Step 0: Load raw data ==="
+	$(MAKE) load-data
 	@echo "=== Step 1: dbt build ==="
 	$(MAKE) dbt-build
 	@echo "=== Step 2: ML predict ==="
