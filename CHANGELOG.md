@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 2 — Intermediate (Business Rules)
+
+- Create `int_payments_aggregated` — one row per order with total payment, installments, method count
+- Create `int_order_status_normalized` — map raw statuses to placed/in_transit/delivered/canceled/other with boolean flags
+- Create `int_orders_enriched` — keystone model joining orders + payments + status + reviews with delay metrics
+- Compute `delivery_days`, `estimated_delivery_days`, `delay_days`, `is_delayed` per `docs/definitions.md`
+- Handle nulls: `is_delayed = null` when delivery dates are missing
+- Deduplicate reviews (most recent per order)
+- Add `_int__models.yml` with column descriptions and schema tests for all 3 models
+
 ### Phase 1 — Staging (Reliable Data)
 
 - Create 8 staging models: `stg_orders`, `stg_order_items`, `stg_order_payments`, `stg_order_reviews`, `stg_customers`, `stg_sellers`, `stg_products`, `stg_geolocation`

@@ -1,0 +1,175 @@
+version: 2
+
+models:
+
+  # ──────────────────────────────────────────────
+  # int_payments_aggregated
+  # ──────────────────────────────────────────────
+  - name: int_payments_aggregated
+    description: "Payment data aggregated to one row per order. Resolves multi-payment duplication."
+    columns:
+      - name: order_id
+        description: "Unique order identifier (PK). One row per order."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: total_payment_value
+        description: "Sum of all payment values for the order (BRL)."
+        data_tests:
+          - not_null
+
+      - name: payment_installments_max
+        description: "Maximum number of installments across all payments for the order."
+        data_tests:
+          - not_null
+
+      - name: payment_method_count
+        description: "Number of distinct payment methods used in the order."
+        data_tests:
+          - not_null
+
+      - name: payment_type_list
+        description: "Comma-separated list of distinct payment types (alphabetical)."
+        data_tests:
+          - not_null
+
+      - name: payment_count
+        description: "Total number of payment records for the order."
+        data_tests:
+          - not_null
+
+  # ──────────────────────────────────────────────
+  # int_order_status_normalized
+  # ──────────────────────────────────────────────
+  - name: int_order_status_normalized
+    description: "Order statuses mapped to a simplified set: placed, in_transit, delivered, canceled, other."
+    columns:
+      - name: order_id
+        description: "Unique order identifier (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: raw_status
+        description: "Original order status from stg_orders."
+        data_tests:
+          - not_null
+
+      - name: normalized_status
+        description: "Simplified status category."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - placed
+                - in_transit
+                - delivered
+                - canceled
+                - other
+
+      - name: is_delivered
+        description: "1 if the order was delivered, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+      - name: is_canceled
+        description: "1 if the order was canceled, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+  # ──────────────────────────────────────────────
+  # int_orders_enriched
+  # ──────────────────────────────────────────────
+  - name: int_orders_enriched
+    description: >
+      Keystone model joining orders + payments + status + reviews.
+      Computes delivery and delay metrics. Grain: 1 row per order_id.
+    columns:
+      - name: order_id
+        description: "Unique order identifier (PK)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Foreign key to stg_customers."
+        data_tests:
+          - not_null
+
+      - name: order_purchased_at
+        description: "Timestamp when the order was placed."
+        data_tests:
+          - not_null
+
+      - name: order_approved_at
+        description: "Timestamp when payment was approved."
+
+      - name: order_delivered_carrier_at
+        description: "Timestamp when handed to the carrier."
+
+      - name: order_delivered_customer_at
+        description: "Timestamp when the customer received the order."
+
+      - name: order_estimated_delivery_at
+        description: "Estimated delivery date shown at purchase."
+
+      - name: order_status
+        description: "Raw order status."
+        data_tests:
+          - not_null
+
+      - name: normalized_status
+        description: "Simplified status (placed, in_transit, delivered, canceled, other)."
+        data_tests:
+          - not_null
+
+      - name: is_delivered
+        description: "1 if delivered, 0 otherwise."
+        data_tests:
+          - not_null
+
+      - name: is_canceled
+        description: "1 if canceled, 0 otherwise."
+        data_tests:
+          - not_null
+
+      - name: total_payment_value
+        description: "Total payment value for the order (BRL)."
+
+      - name: payment_installments_max
+        description: "Max installments across payments."
+
+      - name: payment_method_count
+        description: "Number of distinct payment methods."
+
+      - name: payment_type_list
+        description: "Comma-separated payment types."
+
+      - name: payment_count
+        description: "Number of payment records."
+
+      - name: review_score
+        description: "Customer review score (1-5). Null if no review."
+
+      - name: review_comment_title
+        description: "Review title. Null if no review."
+
+      - name: review_comment_message
+        description: "Review body. Null if no review."
+
+      - name: delivery_days
+        description: "Days from purchase to delivery. Null if not delivered."
+
+      - name: estimated_delivery_days
+        description: "Days from purchase to estimated delivery date."
+
+      - name: delay_days
+        description: "Days late (positive) or early (negative). Null if not delivered or dates missing."
+
+      - name: is_delayed
+        description: "1 if delayed, 0 if on-time, null if not delivered or dates missing."
