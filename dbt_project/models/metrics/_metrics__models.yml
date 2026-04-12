@@ -1,0 +1,61 @@
+version: 2
+
+models:
+
+  - name: met_daily_gmv
+    description: >
+      Daily gross merchandise value (GMV). Sum of total_payment_value for valid orders
+      (see docs/definitions.md) grouped by purchase date (order_date).
+    columns:
+      - name: order_date
+        description: "Purchase calendar date; grain key."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: gmv
+        description: "Sum of total_payment_value in BRL for valid orders on this date."
+        data_tests:
+          - not_null
+
+  - name: met_daily_revenue
+    description: >
+      Daily revenue: sum of total_payment_value for delivered orders with at least one
+      line item, by purchase date. Narrower than GMV (see docs/metrics.md).
+    columns:
+      - name: order_date
+        description: "Purchase calendar date; grain key."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: revenue
+        description: "Sum of total_payment_value in BRL for delivered valid orders on this date."
+        data_tests:
+          - not_null
+
+  - name: met_daily_delay_rate
+    description: >
+      Daily delay rate among delivered orders eligible for delay classification
+      (both delivery and estimated dates present). Ratio uses safe_divide.
+    columns:
+      - name: order_date
+        description: "Purchase calendar date; grain key."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: delay_rate
+        description: "Fraction of eligible delivered orders that were delayed (0–1)."
+        data_tests:
+          - not_null
+
+      - name: delivered_eligible_orders
+        description: "Count of delivered orders in denominator for this date."
+        data_tests:
+          - not_null
+
+      - name: delayed_orders
+        description: "Count of delayed orders (is_delayed = 1) for this date."
+        data_tests:
+          - not_null
