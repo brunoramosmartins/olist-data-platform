@@ -1,0 +1,4 @@
+selectors:
+  - name: marts
+    description: "Marts models and all upstream dependencies (staging + intermediate)."
+    definition: "+path:models/marts"

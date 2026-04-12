@@ -1,0 +1,221 @@
+version: 2
+
+models:
+
+  # ──────────────────────────────────────────────
+  # dim_customers
+  # ──────────────────────────────────────────────
+  - name: dim_customers
+    description: >
+      Customer dimension. Grain: one row per customer_unique_id (natural person).
+      Built from stg_customers with deterministic deduplication when the same person
+      has multiple customer_id values.
+    columns:
+      - name: customer_key
+        description: "Surrogate primary key for the customer dimension."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_unique_id
+        description: "Business key: stable customer identifier across orders."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_city
+        description: "Customer city (lowercased, trimmed in staging)."
+
+      - name: customer_state
+        description: "Customer state (2-letter uppercase code)."
+
+      - name: customer_zip_code_prefix
+        description: "First digits of the customer postal code (prefix)."
+
+  # ──────────────────────────────────────────────
+  # dim_sellers
+  # ──────────────────────────────────────────────
+  - name: dim_sellers
+    description: "Seller dimension. Grain: one row per seller_id."
+    columns:
+      - name: seller_key
+        description: "Surrogate primary key for the seller dimension."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: seller_id
+        description: "Business key: unique seller identifier."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: seller_city
+        description: "Seller city (lowercased, trimmed in staging)."
+
+      - name: seller_state
+        description: "Seller state (2-letter uppercase code)."
+
+      - name: seller_zip_code_prefix
+        description: "First digits of the seller postal code (prefix)."
+
+  # ──────────────────────────────────────────────
+  # dim_products
+  # ──────────────────────────────────────────────
+  - name: dim_products
+    description: >
+      Product dimension. Grain: one row per product_id.
+      Missing or blank categories are stored as 'uncategorized'.
+    columns:
+      - name: product_key
+        description: "Surrogate primary key for the product dimension."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_id
+        description: "Business key: unique product identifier."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_category
+        description: "Product category label; 'uncategorized' when unknown or blank."
+
+      - name: weight_g
+        description: "Product weight in grams."
+
+      - name: length_cm
+        description: "Product length in centimeters."
+
+      - name: height_cm
+        description: "Product height in centimeters."
+
+      - name: width_cm
+        description: "Product width in centimeters."
+
+  # ──────────────────────────────────────────────
+  # fact_orders
+  # ──────────────────────────────────────────────
+  - name: fact_orders
+    description: >
+      Primary order-level fact table for the analytical star schema.
+      Grain: exactly one row per order_id. Item metrics are rolled up from
+      stg_order_items; the representative line for seller and category is the line
+      with the highest (price + freight_value), breaking ties by lowest item_sequence.
+    columns:
+      - name: order_id
+        description: "Business key: unique order identifier (fact grain)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_key
+        description: "Foreign key to dim_customers."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+
+      - name: order_date
+        description: "Calendar date the order was placed (from order_purchased_at)."
+
+      - name: delivery_date
+        description: "Calendar date the customer received the order, if delivered."
+
+      - name: estimated_delivery_date
+        description: "Estimated delivery calendar date from the order record."
+
+      - name: item_count
+        description: "Number of line items in the order from stg_order_items."
+
+      - name: total_freight_value
+        description: "Sum of freight_value across all lines in the order (BRL)."
+
+      - name: product_category
+        description: >
+          Product category from the primary line item (highest price + freight).
+          Aligns with dim_products.product_category for that product when present.
+
+      - name: seller_id
+        description: "Seller id from the primary line item (same tie-break as category)."
+
+      - name: total_payment_value
+        description: "Total payment amount for the order from int_payments_aggregated (BRL)."
+
+      - name: delivery_days
+        description: "Days from purchase to customer delivery; null if not delivered."
+
+      - name: delay_days
+        description: "Days between estimated delivery and actual delivery (positive = late)."
+
+      - name: is_delayed
+        description: "1 if delivered after the estimated date, 0 if on time, null if unknown."
+
+      - name: review_score
+        description: "Review score (1–5) from the latest review per order; null if none."
+
+  # ──────────────────────────────────────────────
+  # fact_order_items
+  # ──────────────────────────────────────────────
+  - name: fact_order_items
+    description: >
+      Line-item fact table for product- and seller-level analysis.
+      Grain: one row per order_id and order_item_id (order line).
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          compare_model: ref('stg_order_items')
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - order_item_id
+    columns:
+      - name: order_id
+        description: "Order identifier (part of composite grain)."
+        data_tests:
+          - not_null
+
+      - name: order_item_id
+        description: "Line sequence within the order (from stg_order_items.item_sequence)."
+        data_tests:
+          - not_null
+
+      - name: product_id
+        description: "Natural product key from the source."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+
+      - name: seller_id
+        description: "Natural seller key from the source."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_id
+
+      - name: product_key
+        description: "Foreign key to dim_products."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+
+      - name: seller_key
+        description: "Foreign key to dim_sellers."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_key
+
+      - name: price
+        description: "Line item price in BRL."
+
+      - name: freight_value
+        description: "Freight allocated to the line in BRL."
+
