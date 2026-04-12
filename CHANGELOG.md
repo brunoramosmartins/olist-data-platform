@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 4 — Metrics Layer
+
+- Add `met_daily_gmv` — sum of `total_payment_value` by `order_date` for valid orders (`docs/definitions.md`)
+- Add `met_daily_revenue` — same field, delivered valid orders only; formula decision documented in `docs/metrics.md`
+- Add `met_daily_delay_rate` — delayed / eligible delivered per `order_date` using `safe_divide`
+- Add macros `safe_divide`, `cents_to_currency`
+- Add `_metrics__models.yml` with schema tests; singular tests for GMV/revenue totals vs `fact_orders` and delay_rate bounds
+- Extend `selectors.yml` with `metrics` selector (`+path:models/metrics`)
+
 ### Phase 2 — Intermediate (Business Rules)
 
 - Create `int_payments_aggregated` — one row per order with total payment, installments, method count
