@@ -30,6 +30,14 @@ from sklearn.metrics import (
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from feature_config import (
+    CATEGORICAL_FEATURES,
+    NUMERIC_FEATURES,
+    TARGET,
+    feature_columns,
+    validate_expected_columns,
+)
+
 ROOT = Path(__file__).resolve().parent.parent
 FEATURES_PATH = ROOT / "data" / "ml" / "features.parquet"
 MODEL_DIR = ROOT / "ml" / "models"
@@ -43,30 +51,6 @@ EVAL_REPORT_PATH = REPORT_DIR / "evaluation_v1.md"
 # Temporal boundaries (purchase timestamp, naive local time as in source)
 TRAIN_END = pd.Timestamp("2018-04-01")
 VAL_END = pd.Timestamp("2018-07-01")
-
-TARGET = "is_delayed"
-DROP_FROM_X = ["order_id", "order_purchase_timestamp", "seller_id"]
-
-NUMERIC_FEATURES = [
-    "order_day_of_week",
-    "order_hour",
-    "order_month",
-    "total_payment_value",
-    "payment_installments",
-    "payment_type_count",
-    "product_weight_g",
-    "product_volume_cm3",
-    "customer_seller_same_state",
-    "seller_avg_delivery_days_historical",
-    "freight_value",
-    "freight_ratio",
-    "estimated_delivery_days",
-]
-CATEGORICAL_FEATURES = [
-    "product_category",
-    "customer_state",
-    "seller_state",
-]
 
 
 @dataclass
@@ -323,10 +307,8 @@ def main() -> None:
     _print_class_balance(df.loc[val_mask, TARGET], "Validation")
     _print_class_balance(df.loc[test_mask, TARGET], "Test")
 
-    feature_cols = [c for c in df.columns if c not in DROP_FROM_X and c != TARGET]
-    for col in NUMERIC_FEATURES + CATEGORICAL_FEATURES:
-        if col not in df.columns:
-            raise ValueError(f"Expected column `{col}` in features parquet.")
+    validate_expected_columns(list(df.columns))
+    feature_cols = feature_columns(list(df.columns))
 
     num_cols = [c for c in NUMERIC_FEATURES if c in feature_cols]
     cat_cols = [c for c in CATEGORICAL_FEATURES if c in feature_cols]

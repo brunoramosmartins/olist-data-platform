@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: ml_pipeline
+    description: >
+      Tables written by Python ML scripts. Populated by `python ml/predict.py`
+      (batch inference). Must exist before building `fct_predictions`.
+    schema: main
+    tables:
+      - name: ml_predictions
+        description: "One row per order_id with batch model outputs and metadata."
+        columns:
+          - name: order_id
+            description: "Join key to fact_orders / fct_order_features."
+          - name: predicted_probability
+            description: "P(is_delayed = 1) from the active model."
+          - name: predicted_class
+            description: "Threshold 0.5 on predicted_probability (0 or 1)."
+          - name: model_version
+            description: "Registry version string from ml/current_model.yaml."
+          - name: prediction_timestamp
+            description: "UTC time when the batch prediction was produced."

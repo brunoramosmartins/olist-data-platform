@@ -10,3 +10,7 @@ selectors:
   - name: features
     description: "Feature table and all upstream dependencies."
     definition: "+path:models/features"
+
+  - name: fct_predictions
+    description: "Prediction bridge model; requires ml_predictions table (run ml/predict.py first)."
+    definition: "+fct_predictions"
