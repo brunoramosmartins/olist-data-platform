@@ -1,0 +1,27 @@
+# ML monitoring and retrain configuration (Phase 8).
+
+monitoring:
+  # Estimated relative cost of intervention mistakes (arbitrary currency units).
+  false_positive_cost: 10.0
+  false_negative_cost: 50.0
+
+  # Flag performance if any monthly window ROC-AUC drops more than this below baseline.
+  roc_auc_alert_delta: 0.05
+
+  # Fraction of orders (by predicted risk) for precision@k — "top k% highest risk".
+  precision_at_k: 0.10
+
+  # If null, baseline ROC-AUC is read from ml/current_model.yaml (metrics.roc_auc_val).
+  baseline_roc_auc: null
+
+drift:
+  # Number of quantile bins for PSI on numeric features.
+  psi_bins: 10
+
+  # Population Stability Index thresholds (standard industry cutoffs).
+  psi_ok_max: 0.1
+  psi_warning_max: 0.2
+
+  # Categorical drift: max absolute difference in category share (0–1) before feature-level alert.
+  categorical_max_share_diff_alert: 0.2
+  categorical_max_share_diff_warning: 0.1

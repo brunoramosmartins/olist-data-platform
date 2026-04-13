@@ -65,6 +65,18 @@ LIMIT 20;
 
 Use this for calibration, error analysis, and monitoring delayed vs predicted-delayed rates by date.
 
+## Monitoring (Phase 8)
+
+After predictions exist (`ml/predict.py`) and `fct_predictions` is built, run:
+
+```bash
+python ml/monitor.py
+```
+
+This reads `fct_predictions` from DuckDB (scored rows with non-null `actual_is_delayed`), computes **monthly** technical metrics, **precision@k** (top decile by default) and **cost-weighted** FP/FN totals using `ml/config.yaml`, compares ROC-AUC to the baseline in `ml/current_model.yaml` (or `monitoring.baseline_roc_auc`), writes `ml/reports/monitoring_{date}.json`, runs **drift** (PSI + categorical shifts) vs `ml/data_snapshots/train_v1.parquet` and `data/ml/features.parquet`, writes `ml/reports/drift_{date}.md`, and replaces `main.ml_monitoring` with a JSON payload snapshot.
+
+**Prerequisites:** `train_v1.parquet` (from `python ml/train.py`), current `features.parquet`, and populated `fct_predictions`.
+
 ## Verifying the Setup
 
 ```bash
