@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 8 — Monitoring (feedback loop)
+
+- Add `ml/monitor.py` — monthly ROC-AUC / precision / recall / F1 vs `fct_predictions`, overall `precision@k`, FP/FN cost from `ml/config.yaml`, ROC vs registry baseline alerts
+- Add drift vs `train_v1.parquet` vs `features.parquet`: PSI (numeric), categorical share shifts; `ml/reports/drift_{date}.md`
+- Persist `ml/reports/monitoring_{date}.json` and DuckDB `main.ml_monitoring`
+- Add `ml/config.yaml` (costs, thresholds, drift bands)
+
 ### Phase 7 — Inference Pipeline
 
 - Add `ml/predict.py` — read `current_model.yaml`, score `features.parquet`, write `ml/predictions/predictions_{version}_{date}.parquet` and DuckDB `main.ml_predictions`

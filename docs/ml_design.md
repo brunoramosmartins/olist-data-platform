@@ -110,6 +110,16 @@ The Parquet file is the contract between dbt and ML. dbt owns the SQL; Python ow
 
 ---
 
+## Monitoring and drift (Phase 8)
+
+- **`ml/monitor.py`** joins **predictions to actuals** via DuckDB `fct_predictions` (requires non-null `actual_is_delayed` and `order_date`).
+- **Per calendar month:** ROC-AUC, precision, recall, F1. **Overall:** same metrics plus **precision@k** (default top10% by `predicted_probability`) and **cost-weighted** confusion counts using `false_positive_cost` / `false_negative_cost` in **`ml/config.yaml`**.
+- **Alerts:** any window (or overall) with ROC-AUC **&lt; baseline − `roc_auc_alert_delta`** flags in JSON and stdout; baseline ROC defaults to **`metrics.roc_auc_val`** in `ml/current_model.yaml`.
+- **Drift:** PSI on numeric columns vs `ml/data_snapshots/train_v1.parquet`; categorical max share-difference vs `data/ml/features.parquet`; thresholds in `ml/config.yaml` (`psi_ok_max`, `psi_warning_max`, categorical bands). Output: **`ml/reports/drift_{date}.md`**.
+- **Artifacts:** **`ml/reports/monitoring_{date}.json`**, DuckDB **`main.ml_monitoring`** (latest run JSON blob). Intended to run on each pipeline execution (e.g. daily batch).
+
+---
+
 ## Model Tracking
 
 Model artifacts are tracked via `ml/current_model.yaml` (no MLflow or W&B):
