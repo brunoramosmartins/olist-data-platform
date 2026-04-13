@@ -1,6 +1,6 @@
 # Olist Data Platform
 
-End-to-end data system that transforms raw e-commerce data into reliable metrics and monitored delivery-delay predictions.
+End-to-end **data + ML** platform for the **Olist Brazilian e-commerce** dataset: raw CSVs land in DuckDB, **dbt** builds staging → intermediate → marts → metrics → **`fct_order_features`**, a Parquet export feeds **scikit-learn** training and batch scoring, and **monitoring + retraining** close the loop on delivery-delay prediction (`is_delayed`).
 
 ## Tech Stack
 
@@ -17,9 +17,17 @@ End-to-end data system that transforms raw e-commerce data into reliable metrics
 ## Architecture
 
 ```
-CSV (Olist) → stg_* → int_* → fact/dim → metrics
-                                    ↓
-                              features → .parquet → train → predict → monitor → retrain
+CSV (Olist) -> DuckDB raw -> dbt (stg -> int -> marts -> metrics -> fct_order_features)
+                                    |
+                         data/ml/features.parquet
+                                    |
+ ml/train.py -> model_v*.joblib + current_model.yaml + train_v*.parquet
+                                    |
+              ml/predict.py -> ml_predictions (DuckDB) -> dbt fct_predictions
+                                    |
+              ml/monitor.py -> monitoring_*.json + drift_*.md + ml_monitoring
+                                    |
+              ml/retrain.py -> comparison_*.md + optional promotion
 ```
 
 ## Directory Structure
@@ -41,13 +49,14 @@ olist-data-platform/
 │   ├── seeds/
 │   └── tests/
 ├── ml/
-│   ├── models/           # Serialized model artifacts
+│   ├── models/           # Serialized model artifacts (*.joblib; gitignored)
 │   ├── predictions/      # Versioned prediction outputs
-│   ├── reports/          # Monitoring and evaluation reports
-│   ├── data_snapshots/   # Training data snapshots
+│   ├── reports/          # Monitoring, evaluation, comparison reports
+│   ├── data_snapshots/   # Training data snapshots (reproducibility)
+│   ├── state/            # Retrain calendar reference (optional)
 │   └── notebooks/        # EDA and analysis
 ├── docs/                 # Business definitions, ML design, runbook
-├── scripts/              # Setup, download, and utility scripts
+├── scripts/              # setup, download, load_raw_data, run_pipeline.sh, …
 ├── Makefile              # Pipeline orchestration
 ├── pyproject.toml        # Python dependencies
 └── CHANGELOG.md
@@ -56,20 +65,35 @@ olist-data-platform/
 ## Quick Start
 
 ```bash
-# 1. Set up environment
-bash scripts/setup_env.sh
+# 1. Dependencies + dbt packages (Python 3.11+)
+make install
 
-# 2. Activate venv
-source .venv/bin/activate
-
-# 3. Download Olist dataset (requires Kaggle CLI)
+# 2. Raw data (Kaggle CLI) — see scripts/download_data.sh
 bash scripts/download_data.sh
 
-# 4. Run the full pipeline
+# 3. Full cycle: load → dbt → features → train → predict → fct_predictions → monitor → retrain
 make pipeline
 ```
 
-See [docs/runbook.md](docs/runbook.md) for detailed instructions.
+On **Windows**, use **Git Bash** or **WSL** so `make pipeline` can run `bash scripts/run_pipeline.sh`. Alternatively, run the steps in [docs/runbook.md](docs/runbook.md) manually.
+
+See [docs/runbook.md](docs/runbook.md) for detailed instructions and benchmark timings.
+
+## Example: predictions vs actuals (DuckDB)
+
+After `make pipeline` (or predict + `dbt build --select +fct_predictions`):
+
+```sql
+SELECT order_date,
+       actual_is_delayed,
+       predicted_class,
+       predicted_probability,
+       model_version
+FROM fct_predictions
+WHERE actual_is_delayed IS NOT NULL
+ORDER BY order_date DESC
+LIMIT 25;
+```
 
 ## Documentation
 
@@ -91,7 +115,7 @@ See [docs/runbook.md](docs/runbook.md) for detailed instructions.
 | 6 | Model Training | `v0.7-training` |
 | 7 | Inference Pipeline | `v0.8-inference` |
 | 8 | Monitoring (Feedback Loop) | `v0.9-monitoring` |
-| 9 | Retraining (Continuous Cycle) | `v1.0.0` |
+| 9 | Retraining (continuous cycle; CI ML checks) | `v1.0.0` |
 
 ## License
 

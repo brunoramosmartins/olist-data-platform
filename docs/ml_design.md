@@ -115,8 +115,23 @@ The Parquet file is the contract between dbt and ML. dbt owns the SQL; Python ow
 - **`ml/monitor.py`** joins **predictions to actuals** via DuckDB `fct_predictions` (requires non-null `actual_is_delayed` and `order_date`).
 - **Per calendar month:** ROC-AUC, precision, recall, F1. **Overall:** same metrics plus **precision@k** (default top10% by `predicted_probability`) and **cost-weighted** confusion counts using `false_positive_cost` / `false_negative_cost` in **`ml/config.yaml`**.
 - **Alerts:** any window (or overall) with ROC-AUC **&lt; baseline − `roc_auc_alert_delta`** flags in JSON and stdout; baseline ROC defaults to **`metrics.roc_auc_val`** in `ml/current_model.yaml`.
-- **Drift:** PSI on numeric columns vs `ml/data_snapshots/train_v1.parquet`; categorical max share-difference vs `data/ml/features.parquet`; thresholds in `ml/config.yaml` (`psi_ok_max`, `psi_warning_max`, categorical bands). Output: **`ml/reports/drift_{date}.md`**.
+- **Drift:** PSI on numeric columns vs the **baseline training snapshot** (`train_snapshot` in `current_model.yaml`, default `train_v1.parquet`); categorical max share-difference vs `data/ml/features.parquet`; thresholds in `ml/config.yaml` (`psi_ok_max`, `psi_warning_max`, categorical bands). Output: **`ml/reports/drift_{date}.md`**.
 - **Artifacts:** **`ml/reports/monitoring_{date}.json`**, DuckDB **`main.ml_monitoring`** (latest run JSON blob). Intended to run on each pipeline execution (e.g. daily batch).
+- **Full drift payload:** `monitoring_*.json` includes a **`drift`** object (PSI per numeric feature, categorical shifts) for automation — not only `drift_summary`.
+
+---
+
+## Retraining triggers (Phase 9)
+
+Retraining is driven by **`ml/retrain.py`**, which reads the **latest** `ml/reports/monitoring_*.json` (from `ml/monitor.py`) plus **`ml/config.yaml`** (`retrain` section).
+
+| Trigger | Rule |
+| --- | --- |
+| **Performance** | **ROC-AUC** in **2+ consecutive** calendar **monthly** windows is below **baseline − 0.05** (same delta as `monitoring.roc_auc_alert_delta`; baseline from registry / config). |
+| **Drift** | **3+** numeric features with **PSI ≥ 0.2** (configurable via `retrain.psi_retrain_threshold` / `psi_feature_count_trigger`). |
+| **Calendar** | **Safety net:** if **≥ N** months (`retrain.calendar_months`) have passed since the last retrain reference (`ml/state/retrain_state.json`, else `trained_on` in `current_model.yaml`), retrain is eligible. |
+
+When **any** trigger fires (or **`--force`**), the script fits a new pipeline on an **extended** training window (`retrain.extended_train_end` — train strictly before this date; validation between that date and `test_start`; **test** slice unchanged vs registry). It saves **`ml/models/model_v{N}_logreg.joblib`** and **`ml/data_snapshots/train_v{N}.parquet`**, compares **old vs new** on the **same test set**, writes **`ml/reports/comparison_{old}_vs_{new}.md`**, and updates **`ml/current_model.yaml`** **only if** the new model’s **test ROC-AUC** is **strictly higher** than the active model’s.
 
 ---
 
@@ -124,14 +139,4 @@ The Parquet file is the contract between dbt and ML. dbt owns the SQL; Python ow
 
 Model artifacts are tracked via `ml/current_model.yaml` (no MLflow or W&B):
 
-```yaml
-version: "v1"
-model_path: "ml/models/model_v1.joblib"
-trained_at: "2024-01-15T10:30:00"
-metrics:
-  f1: 0.72
-  precision: 0.68
-  recall: 0.77
-  roc_auc: 0.81
-data_snapshot: "ml/data_snapshots/features_v1.parquet"
-```
+See **`ml/current_model.yaml`** in the repo for the live schema (`version`, `path`, `train_cutoff`, `test_start`, `train_snapshot`, `metrics`, etc.).

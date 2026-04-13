@@ -25,3 +25,16 @@ drift:
   # Categorical drift: max absolute difference in category share (0–1) before feature-level alert.
   categorical_max_share_diff_alert: 0.2
   categorical_max_share_diff_warning: 0.1
+
+# Retraining triggers and extended window (Phase 9).
+retrain:
+  # Safety net: suggest retraining if no run in this many calendar months.
+  calendar_months: 3
+  # Train: ts < extended_train_end; validation: [extended_train_end, test_start); test: >= test_start from registry.
+  extended_train_end: "2018-06-01"
+  # Minimum consecutive monthly windows below (baseline − roc_auc_alert_delta) to fire performance trigger.
+  performance_consecutive_windows: 2
+  # Count numeric features with PSI >= this value as drift signal (see docs/ml_design.md).
+  psi_retrain_threshold: 0.2
+  # Minimum count of such features to fire drift trigger.
+  psi_feature_count_trigger: 3

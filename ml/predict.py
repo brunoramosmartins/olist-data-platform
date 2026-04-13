@@ -4,10 +4,12 @@ write versioned Parquet + DuckDB table main.ml_predictions.
 
 Usage (from repo root):
     python ml/predict.py
+    python ml/predict.py --dry-run
 """
 
 from __future__ import annotations
 
+import argparse
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -43,15 +45,38 @@ def _load_registry() -> dict:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Batch scoring from features Parquet.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run load + transform + predict; do not write Parquet or DuckDB.",
+    )
+    parser.add_argument(
+        "--skip-if-missing",
+        action="store_true",
+        help="Exit 0 if registry, model, or features are missing (CI without artifacts).",
+    )
+    args = parser.parse_args()
+
+    if args.skip_if_missing and not REGISTRY_PATH.is_file():
+        print("predict: skip (no registry)")
+        return
+
     active = _load_registry()
     model_rel = Path(active["path"])
     model_path = ROOT / model_rel
     if not model_path.is_file():
+        if args.skip_if_missing:
+            print("predict: skip (no model artifact)")
+            return
         raise FileNotFoundError(f"Model artifact not found: {model_path}")
 
     features_rel = Path(active["features_parquet"])
     features_path = ROOT / features_rel
     if not features_path.is_file():
+        if args.skip_if_missing:
+            print("predict: skip (no features parquet)")
+            return
         raise FileNotFoundError(
             f"Features parquet not found: {features_path}. Run export_features first."
         )
@@ -90,6 +115,12 @@ def main() -> None:
 
     if len(out) != len(df):
         raise RuntimeError("Internal error: prediction row count mismatch.")
+
+    if args.dry_run:
+        print(
+            f"dry-run OK: scored {len(out)} rows (model {version}); skipping writes."
+        )
+        return
 
     PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
     day = date.today().isoformat()
