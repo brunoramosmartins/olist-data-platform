@@ -90,10 +90,12 @@ Historical averages use **window functions only** (no self-joins). Training scri
 
 ## Baseline Approach
 
-1. **Model:** Logistic Regression (interpretable, fast, good baseline)
+1. **Model:** Logistic Regression (interpretable, fast, good baseline) — implemented in `ml/train.py` with temporal train/validation/test cutoffs (`2018-04-01`, `2018-07-01` on `order_purchase_timestamp`).
 2. **Second model:** Random Forest or Gradient Boosting (if baseline is insufficient)
 3. **Feature engineering:** Handled entirely by dbt (`fct_order_features`) — Python reads a clean Parquet file
-4. **Hyperparameter tuning:** Grid search with temporal cross-validation
+4. **Hyperparameter tuning:** Grid search with temporal cross-validation (not used for v1 baseline)
+
+Training artifacts: `ml/models/model_v1_logreg.joblib` (fitted `Pipeline`), `ml/current_model.yaml` (active pointer + metrics), `ml/reports/evaluation_v1.md` (regenerate via `python ml/train.py`).
 
 ---
 
