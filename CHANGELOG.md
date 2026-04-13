@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 5 — Feature Layer (ML bridge)
+
+- Add `fct_order_features` — order-grain ML features + `is_delayed` target; historical seller delivery via causal window (`ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING`)
+- Add `_features__models.yml` with column documentation and PK tests
+- Add `tests/assert_no_leakage_in_features.sql` — target eligibility + first-row historical null check
+- Add `scripts/export_features.py` and `make export-features` (dbt build `+fct_order_features` + Parquet to `data/ml/features.parquet`)
+- Extend `selectors.yml` with `features` selector; expand `docs/ml_design.md` with feature/leakage table
+
 ### Phase 4 — Metrics Layer
 
 - Add `met_daily_gmv` — sum of `total_payment_value` by `order_date` for valid orders (`docs/definitions.md`)

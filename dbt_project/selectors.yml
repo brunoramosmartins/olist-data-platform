@@ -6,3 +6,7 @@ selectors:
   - name: metrics
     description: "Metrics models and all upstream dependencies (through fact_orders)."
     definition: "+path:models/metrics"
+
+  - name: features
+    description: "Feature table and all upstream dependencies."
+    definition: "+path:models/features"

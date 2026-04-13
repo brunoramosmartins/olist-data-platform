@@ -1,0 +1,78 @@
+version: 2
+
+models:
+
+  - name: fct_order_features
+    description: >
+      Single training/inference feature table at order grain. Features are restricted
+      to information available at order placement time; target is_delayed is null when
+      delay cannot be computed (non-delivered or missing dates). Historical seller
+      delivery uses a causal window frame (no current row). See docs/ml_design.md.
+    columns:
+      - name: order_id
+        description: "Business key; use for joins and row identity (often excluded from model matrix)."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: order_purchase_timestamp
+        description: "When the customer placed the order; used for temporal splits and window ordering."
+        data_tests:
+          - not_null
+
+      - name: order_day_of_week
+        description: "extract(dow from order_purchase_timestamp) — DuckDB Sunday=0."
+
+      - name: order_hour
+        description: "Hour of day (0–23) at order purchase."
+
+      - name: order_month
+        description: "Calendar month (1–12) at order purchase."
+
+      - name: total_payment_value
+        description: "Order-level total payment in BRL (from int_payments_aggregated)."
+
+      - name: payment_installments
+        description: "Maximum installments across payments for the order (payment_installments_max)."
+
+      - name: payment_type_count
+        description: "Distinct payment methods count (payment_method_count)."
+
+      - name: product_weight_g
+        description: "Weight (g) of the primary line item product; null if product unknown."
+
+      - name: product_volume_cm3
+        description: "length_cm × height_cm × width_cm for primary product; null if any dimension missing."
+
+      - name: product_category
+        description: "Category of the primary line item (aligned with dim_products)."
+
+      - name: customer_state
+        description: "Customer state (2-letter code) from dim_customers."
+
+      - name: seller_state
+        description: "Seller state from dim_sellers; null if seller missing."
+
+      - name: customer_seller_same_state
+        description: "1 if customer and seller states match, 0 if both known and differ, null otherwise."
+
+      - name: seller_avg_delivery_days_historical
+        description: >
+          Mean realized delivery_days over prior orders for the same seller only
+          (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING). Null for first order per seller
+          or when no prior delivered realization exists.
+
+      - name: freight_value
+        description: "Sum of line freight for the order (from fact_orders.total_freight_value)."
+
+      - name: freight_ratio
+        description: "freight_value / total_payment_value; null when payment is zero or missing (safe_divide)."
+
+      - name: estimated_delivery_days
+        description: "Days from purchase to estimated customer delivery (from int_orders_enriched)."
+
+      - name: seller_id
+        description: "Primary line seller id; optional for training (high cardinality) — useful for audits."
+
+      - name: is_delayed
+        description: "Target: 1 late, 0 on-time; null if order is not an eligible delivered order per docs/definitions.md."
