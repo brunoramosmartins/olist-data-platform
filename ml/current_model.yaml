@@ -1,0 +1,22 @@
+active_model:
+  version: "v1"
+  algorithm: "logistic_regression"
+  path: "ml/models/model_v1_logreg.joblib"
+  trained_on: "2026-04-12"
+  train_cutoff: "2018-04-01"
+  validation_end: "2018-06-30"
+  test_start: "2018-07-01"
+  features_parquet: "data/ml/features.parquet"
+  splits:
+    train_rows: 64320
+    validation_rows: 19643
+    test_rows: 12507
+  metrics:
+    roc_auc_val: 0.7862180979456096
+    roc_auc_test: 0.646993164461404
+    precision_val: 0.363636
+    recall_val: 0.016000
+    f1_val: 0.030651
+    precision_test: 0.304348
+    recall_test: 0.014957
+    f1_test: 0.028513
