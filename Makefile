@@ -1,4 +1,4 @@
-.PHONY: install load-data dbt-deps dbt-build dbt-test ml-train ml-predict pipeline clean
+.PHONY: install load-data dbt-deps dbt-build dbt-test export-features ml-train ml-predict pipeline clean
 
 # ---------- Environment ----------
 
@@ -22,6 +22,10 @@ dbt-build:
 
 dbt-test:
 	cd dbt_project && dbt test
+
+export-features:
+	cd dbt_project && dbt build --select "+fct_order_features"
+	python scripts/export_features.py
 
 # ---------- ML ----------
 
