@@ -4,7 +4,7 @@ Model monitoring: performance vs actuals (monthly), business metrics, drift vs t
 Reads:
  - DuckDB `fct_predictions` (predictions + actual_is_delayed + order_date)
   - `data/ml/features.parquet` (current feature distribution)
-  - `ml/data_snapshots/train_v1.parquet` (baseline distribution for drift)
+  - `ml/data_snapshots/train_*.parquet` (baseline for drift; default `train_v1`, or `train_snapshot` in `current_model.yaml`)
   - `ml/config.yaml` (costs, thresholds)
   - `ml/current_model.yaml` (optional baseline ROC-AUC)
 
@@ -44,8 +44,22 @@ DB_PATH = ROOT / "data" / "olist.duckdb"
 CONFIG_PATH = ROOT / "ml" / "config.yaml"
 REGISTRY_PATH = ROOT / "ml" / "current_model.yaml"
 FEATURES_PATH = ROOT / "data" / "ml" / "features.parquet"
-TRAIN_SNAPSHOT_PATH = ROOT / "ml" / "data_snapshots" / "train_v1.parquet"
+DEFAULT_TRAIN_SNAPSHOT_PATH = ROOT / "ml" / "data_snapshots" / "train_v1.parquet"
 REPORT_DIR = ROOT / "ml" / "reports"
+
+
+def _train_snapshot_path() -> Path:
+    """Baseline Parquet for drift; prefer `train_snapshot` in `ml/current_model.yaml`."""
+    if not REGISTRY_PATH.is_file():
+        return DEFAULT_TRAIN_SNAPSHOT_PATH
+    with open(REGISTRY_PATH, encoding="utf-8") as f:
+        reg = yaml.safe_load(f) or {}
+    rel = (reg.get("active_model") or {}).get("train_snapshot")
+    if rel:
+        p = ROOT / Path(rel)
+        if p.is_file():
+            return p
+    return DEFAULT_TRAIN_SNAPSHOT_PATH
 
 
 @dataclass
@@ -236,12 +250,13 @@ def _run_drift(cfg: dict[str, Any]) -> dict[str, Any]:
     cat_warn = float(drift_cfg.get("categorical_max_share_diff_warning", 0.1))
     cat_alert = float(drift_cfg.get("categorical_max_share_diff_alert", 0.2))
 
-    if not TRAIN_SNAPSHOT_PATH.is_file():
-        return {"error": f"Missing baseline snapshot {TRAIN_SNAPSHOT_PATH}"}
+    baseline_path = _train_snapshot_path()
+    if not baseline_path.is_file():
+        return {"error": f"Missing baseline snapshot {baseline_path}"}
     if not FEATURES_PATH.is_file():
         return {"error": f"Missing current features {FEATURES_PATH}"}
 
-    base_df = pd.read_parquet(TRAIN_SNAPSHOT_PATH)
+    base_df = pd.read_parquet(baseline_path)
     cur_df = pd.read_parquet(FEATURES_PATH)
 
     from feature_config import CATEGORICAL_FEATURES, NUMERIC_FEATURES
@@ -285,7 +300,7 @@ def _run_drift(cfg: dict[str, Any]) -> dict[str, Any]:
         overall = "ok"
 
     return {
-        "baseline_path": str(TRAIN_SNAPSHOT_PATH.relative_to(ROOT)),
+        "baseline_path": str(baseline_path.relative_to(ROOT)),
         "current_path": str(FEATURES_PATH.relative_to(ROOT)),
         "overall_status": overall,
         "numeric": numeric_results,
@@ -390,6 +405,7 @@ def main() -> None:
     }
 
     drift = _run_drift(cfg)
+    monitoring_payload["drift"] = drift
     monitoring_payload["drift_summary"] = {
         "overall_status": drift.get("overall_status"),
         "error": drift.get("error"),

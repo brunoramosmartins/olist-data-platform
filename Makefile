@@ -1,4 +1,4 @@
-.PHONY: install load-data dbt-deps dbt-build dbt-test export-features ml-train ml-predict pipeline clean
+.PHONY: install load-data dbt-deps dbt-build dbt-test export-features ml-train ml-predict ml-evaluate pipeline clean
 
 # ---------- Environment ----------
 
@@ -35,20 +35,14 @@ ml-train:
 ml-predict:
 	python ml/predict.py
 
+ml-evaluate:
+	python ml/evaluate.py
+
 # ---------- Full Pipeline ----------
+# Order: load-data → dbt-build → export-features → train → predict → fct_predictions → monitor → retrain
 
 pipeline:
-	@echo "=== Step 0: Load raw data ==="
-	$(MAKE) load-data
-	@echo "=== Step 1: dbt build ==="
-	$(MAKE) dbt-build
-	@echo "=== Step 2: ML predict ==="
-	$(MAKE) ml-predict
-	@echo "=== Step 3: ML monitor ==="
-	python ml/monitor.py
-	@echo "=== Step 4: ML retrain (if triggered) ==="
-	python ml/retrain.py
-	@echo "=== Pipeline complete ==="
+	bash scripts/run_pipeline.sh
 
 # ---------- Utilities ----------
 

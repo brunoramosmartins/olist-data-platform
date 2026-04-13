@@ -165,6 +165,7 @@ def _write_yaml(
         '  validation_end: "2018-06-30"',
         '  test_start: "2018-07-01"',
         '  features_parquet: "data/ml/features.parquet"',
+        '  train_snapshot: "ml/data_snapshots/train_v1.parquet"',
         "  splits:",
         f"    train_rows: {n_train}",
         f"    validation_rows: {n_val}",
@@ -269,6 +270,52 @@ Generated: `{datetime.now(timezone.utc).isoformat()}` (UTC)
 *Regenerate this file with `python ml/train.py` after updating `data/ml/features.parquet`.*
 """
     EVAL_REPORT_PATH.write_text(body, encoding="utf-8")
+
+
+def prepare_features_for_sklearn(df_sub: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
+    """Match inference preprocessing (numeric float64, categorical 'missing' string)."""
+    d = df_sub.loc[:, feature_cols].copy()
+    num_cols = [c for c in NUMERIC_FEATURES if c in feature_cols]
+    cat_cols = [c for c in CATEGORICAL_FEATURES if c in feature_cols]
+    for c in num_cols:
+        d[c] = pd.to_numeric(d[c], errors="coerce").astype("float64")
+    for c in cat_cols:
+        d[c] = d[c].fillna("missing").astype(str)
+    return d
+
+
+def fit_pipeline_on_mask(
+    df: pd.DataFrame,
+    train_mask: pd.Series,
+    feature_cols: list[str],
+    target_col: str,
+) -> Pipeline:
+    validate_expected_columns(list(df.columns))
+    num_cols = [c for c in NUMERIC_FEATURES if c in feature_cols]
+    cat_cols = [c for c in CATEGORICAL_FEATURES if c in feature_cols]
+    d_train = prepare_features_for_sklearn(df.loc[train_mask], feature_cols)
+    y_train = df.loc[train_mask, target_col].astype(int)
+    pipeline = _build_pipeline(num_cols, cat_cols)
+    pipeline.fit(d_train, y_train)
+    return pipeline
+
+
+def roc_auc_on_mask(
+    pipeline: Pipeline,
+    df: pd.DataFrame,
+    mask: pd.Series,
+    feature_cols: list[str],
+    target_col: str,
+) -> float | None:
+    d = prepare_features_for_sklearn(df.loc[mask], feature_cols)
+    y = df.loc[mask, target_col].astype(int).to_numpy()
+    if len(np.unique(y)) < 2:
+        return None
+    proba = pipeline.predict_proba(d)[:, 1]
+    try:
+        return float(roc_auc_score(y, proba))
+    except ValueError:
+        return None
 
 
 def main() -> None:

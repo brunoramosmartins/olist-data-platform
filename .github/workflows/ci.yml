@@ -27,3 +27,19 @@ jobs:
 
       - name: Verify dbt connection
         run: cd dbt_project && dbt debug
+
+      - name: ML validation
+        run: |
+          python -m py_compile ml/train.py ml/predict.py ml/monitor.py ml/retrain.py ml/evaluate.py
+          python - <<'PY'
+          from pathlib import Path
+          import joblib
+          p = Path("ml/models/model_v1_logreg.joblib")
+          if p.is_file():
+              joblib.load(p)
+              print("Model loads OK")
+          else:
+              print("Model artifact absent (typically gitignored); skipping load check")
+          PY
+          python ml/predict.py --dry-run --skip-if-missing
+          python ml/evaluate.py --check-minimum-auc 0.55 --skip-if-missing

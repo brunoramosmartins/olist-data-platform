@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 9 — Retraining (continuous cycle)
+
+- Add `ml/retrain.py` — trigger evaluation (performance / PSI drift / calendar), extended-window refit, `model_v{N}_logreg.joblib` + `train_v{N}.parquet`, comparison report, conditional promotion in `ml/current_model.yaml`
+- Add `ml/evaluate.py` — test-slice ROC-AUC from registry; `--check-minimum-auc` for CI
+- Extend `ml/predict.py` with `--dry-run` and `--skip-if-missing`
+- Persist full **`drift`** object in `monitoring_*.json`; drift baseline path from `train_snapshot` in registry (fallback `train_v1.parquet`)
+- Add `retrain` section to `ml/config.yaml`; `train_snapshot` in registry / `train.py` output
+- Add `scripts/run_pipeline.sh` and wire `make pipeline` to the full ordered cycle (export-features, train, predict, `+fct_predictions`, monitor, retrain)
+- Extend GitHub Actions CI with ML checks (`py_compile`, optional model load, predict dry-run, minimum AUC with skip-if-missing)
+- Document retraining in `docs/ml_design.md`; runbook benchmarks and full flow; README portfolio overview
+
 ### Phase 8 — Monitoring (feedback loop)
 
 - Add `ml/monitor.py` — monthly ROC-AUC / precision / recall / F1 vs `fct_predictions`, overall `precision@k`, FP/FN cost from `ml/config.yaml`, ROC vs registry baseline alerts
