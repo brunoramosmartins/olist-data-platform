@@ -1,6 +1,6 @@
 # Evaluation report — v1 Logistic Regression
 
-Generated: `2026-04-13T00:24:02.783084+00:00` (UTC)
+Generated: `2026-04-13T00:32:24.932380+00:00` (UTC)
 
 ## Model
 

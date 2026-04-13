@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Phase 7 — Inference Pipeline
+
+- Add `ml/predict.py` — read `current_model.yaml`, score `features.parquet`, write `ml/predictions/predictions_{version}_{date}.parquet` and DuckDB `main.ml_predictions`
+- Add `ml/feature_config.py` — shared feature column list for train/predict
+- Add dbt source `ml_pipeline.ml_predictions` (`_ml__sources.yml`) and bridge model `fct_predictions`
+- Add tests: rowcount vs features Parquet, probabilities in [0, 1]; schema tests on `fct_predictions`
+- Extend `selectors.yml` (`fct_predictions`), `docs/runbook.md` (commands + SQL example), `pyproject.toml` (`pyyaml`)
+
 ### Phase 6 — Model Training
 
 - Add `ml/train.py` — load `data/ml/features.parquet`, temporal split (train / val / test), `ColumnTransformer` (median+`StandardScaler`, categorical `"missing"`+one-hot), `LogisticRegression` pipeline

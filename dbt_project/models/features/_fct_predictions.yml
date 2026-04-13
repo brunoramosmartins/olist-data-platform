@@ -1,0 +1,45 @@
+version: 2
+
+models:
+
+  - name: fct_predictions
+    description: >
+      Order-level predictions from the active model (ml/current_model.yaml),
+      joined to fact_orders for customer key, order date, and realized is_delayed.
+    columns:
+      - name: order_id
+        description: "Order identifier; matches fact_orders."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: predicted_probability
+        description: "Scoring output P(delayed); in [0, 1]."
+        data_tests:
+          - not_null
+
+      - name: predicted_class
+        description: "0/1 from 0.5 threshold on predicted_probability."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+      - name: model_version
+        description: "Model registry version at inference time."
+        data_tests:
+          - not_null
+
+      - name: prediction_timestamp
+        description: "When the batch job wrote this row (UTC)."
+        data_tests:
+          - not_null
+
+      - name: customer_key
+        description: "From fact_orders when the order exists there."
+
+      - name: order_date
+        description: "Purchase date from fact_orders."
+
+      - name: actual_is_delayed
+        description: "Realized label from fact_orders when defined; null otherwise."
